@@ -1,3 +1,22 @@
+'''Your Tasks
+
+    When a user tries to create an account, but supplies different 'password' and 'verify' fields, redirect them 
+    back to /register and flash them a message about why their attempt to create an account failed.
+
+    Log out, and see what happens when you try to create a user that already exists. This happens because 
+    we passed the unique=True keyword param to the email = db.Column() invocation in the User class. When we wear 
+    our DB Admin hats, we're happy to get this error, but when we wear our UX designer hats, we want something 
+    friendlier. Before creating an account, search the database for an existing account with that email. If it 
+    exists already, redirect them back to /register and tell them why their account creation failed.
+
+    Add a new route for /login, that responds to GET and renders a login.html template; it also needs to respond 
+    to POST requests and provide error messages for failed login attempts or redirect to the main page if it is a 
+    successful login.
+
+    Create the login.html template, with form fields for email and password.
+    Test out your new route - one problem you will notice is that you get redirected to the register.html page. 
+    Change the login wall to allow this route through.'''
+
 from flask import Flask, request, redirect, render_template, session, flash
 from flask_sqlalchemy import SQLAlchemy
 import cgi
@@ -12,9 +31,8 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
-
     password = db.Column(db.String(120))
-       
+    
     def __init__(self, email, password):
         self.email = email
         self.password = password
@@ -67,21 +85,19 @@ def login():
         flash('bad username or password')
         return redirect("/login")
 
-
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        verify = request.form ['verify']
+        verify = request.form['verify']
         if not is_email(email):
             flash('zoiks! "' + email + '" does not seem like an email address')
             return redirect('/register')
         email_db_count = User.query.filter_by(email=email).count()
         if email_db_count > 0:
             flash('yikes! "' + email + '" is already taken and password reminders are not implemented')
-        return redirect('/register')
-
+            return redirect('/register')
         if password != verify:
             flash('passwords did not match')
             return redirect('/register')
@@ -138,7 +154,6 @@ def rate_movie():
 def movie_ratings():
     return render_template('ratings.html', movies = get_watched_movies())
 
-
 @app.route("/crossoff", methods=['POST'])
 def crossoff_movie():
     crossed_off_movie_id = request.form['crossed-off-movie']
@@ -178,12 +193,14 @@ def index():
     encoded_error = request.args.get("error")
     return render_template('edit.html', watchlist=get_current_watchlist(), error=encoded_error and cgi.escape(encoded_error, quote=True))
 
-endpoints_without_login = ['login' , 'register']
+
+endpoints_without_login = ['login', 'register']
 
 @app.before_request
 def require_login():
     if not ('user' in session or request.endpoint in endpoints_without_login):
         return redirect("/register")
+
 
 # In a real application, this should be kept secret (i.e. not on github)
 # As a consequence of this secret being public, I think connection snoopers or
